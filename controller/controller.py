@@ -6,6 +6,7 @@ import signal
 import sys
 import serial
 import threading
+from consts import Colors
 
 class HexapodController:
     """Controls hexapod movement and orientation"""
