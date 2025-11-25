@@ -1,7 +1,8 @@
 from controller import *
 from objectcv import *
 from consts import Colors
-from camera import FrameBuffer
+from controller.camera import FrameBuffer
+from controller.stream import VideoStreamer
 
 import cv2
 import numpy as np
@@ -12,6 +13,7 @@ import signal
 import sys
 import serial
 import threading
+import argparse
 
 # Global flag for graceful shutdown
 running = True
@@ -62,6 +64,16 @@ def estimate_distance(bottle_width, frame_width):
 def main():
     global running
 
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='Hexapod Bottle Chase Controller')
+    parser.add_argument('--stream', action='store_true',
+                       help='Enable video streaming over network')
+    parser.add_argument('--stream-port', type=int, default=5000,
+                       help='Port for video stream (default: 5000)')
+    parser.add_argument('--stream-quality', type=int, default=70,
+                       help='JPEG quality for stream, 1-100 (default: 70)')
+    args = parser.parse_args()
+
     signal.signal(signal.SIGINT, signal_handler)
 
     print(f"{Colors.GREEN}{'='*70}{Colors.RESET}")
@@ -69,6 +81,8 @@ def main():
     print(f"{Colors.GREEN}{'='*70}{Colors.RESET}\n")
 
     fb = None
+    streamer = None
+
     try:
         print(f"{Colors.CYAN}Initializing hexapod controller...{Colors.RESET}")
         hexapod = HexapodController()
@@ -90,6 +104,15 @@ def main():
         )
 
         print(f"{Colors.GREEN}Camera opened successfully!{Colors.RESET}\n")
+
+        # Optionally start video streamer
+        if args.stream:
+            print(f"{Colors.CYAN}Starting video stream server...{Colors.RESET}")
+            streamer = VideoStreamer(fb, port=args.stream_port, quality=args.stream_quality)
+            streamer.start()
+            print(f"{Colors.GREEN}Stream available at http://<jetson-ip>:{args.stream_port}/{Colors.RESET}\n")
+        else:
+            print(f"{Colors.YELLOW}Video streaming disabled. Use --stream to enable.{Colors.RESET}\n")
 
         frame_width = 640
         frame_height = 480
@@ -196,6 +219,8 @@ def main():
 
     finally:
         print(f"\n{Colors.YELLOW}Shutting down...{Colors.RESET}")
+        if streamer is not None:
+            streamer.stop()
         if fb is not None:
             fb.stop()
         if 'hexapod' in locals():

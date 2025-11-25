@@ -42,7 +42,7 @@ class BottleDetector:
         
         print("Bottle detector ready!")
         
-        self.confidence_threshold = 0.5
+        self.confidence_threshold = 0.3
     
     def download_yolo_model(self):
         """Download YOLOv3-tiny model files if not present"""
