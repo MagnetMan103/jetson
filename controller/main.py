@@ -112,7 +112,7 @@ def main():
         print("Opening IMX219 camera...")
         gst_pipeline = create_gstreamer_pipeline()
         cap = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
-        
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         if not cap.isOpened():
             print(f"{Colors.RED}Failed to open camera{Colors.RESET}")
             return
