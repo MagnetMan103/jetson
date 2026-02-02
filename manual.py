@@ -32,12 +32,12 @@ class Colors:
 class HexapodManualController:
     """Simple manual controller for hexapod robot"""
     
-    def __init__(self, port='/dev/ttyACM0', baudrate=115200):
+    def __init__(self, port='/dev/ttyACM0', baud=9600):
         """Initialize serial connection to Arduino"""
         print(f"{Colors.CYAN}Connecting to hexapod on {port}...{Colors.RESET}")
         
         try:
-            self.arduino = serial.Serial(port, baudrate, timeout=1)
+            self.arduino = serial.Serial(port, baud, timeout=1)
             time.sleep(2)  # Wait for Arduino to reset
             print(f"{Colors.GREEN}Connected successfully!{Colors.RESET}\n")
         except serial.SerialException as e:
@@ -72,7 +72,10 @@ class HexapodManualController:
                 try:
                     line = self.arduino.readline().decode('utf-8').strip()
                     if line:
-                        if line.startswith("MOTOR:"):
+                        if line.startswith("IMU:"):
+                            # Arduino sends IMU data - just ignore it for manual control
+                            pass
+                        elif line.startswith("MOTOR:"):
                             msg = line.split(":", 1)[1]
                             print(f"{Colors.BLUE}[MOTOR] {msg}{Colors.RESET}")
                             if "complete" in msg.lower():
@@ -81,12 +84,16 @@ class HexapodManualController:
                         elif line.startswith("SYSTEM:"):
                             msg = line.split(":", 1)[1]
                             print(f"{Colors.YELLOW}[SYSTEM] {msg}{Colors.RESET}")
-                except Exception as e:
+                except Exception:
                     pass
             time.sleep(0.05)
         
         if not motor_complete:
             print(f"{Colors.YELLOW}Warning: Motor timeout - assuming complete{Colors.RESET}")
+        
+        # Additional settling time after motor action
+        print("Waiting for robot to settle...")
+        time.sleep(1.0)
         
         print(f"{Colors.GREEN}Movement complete!{Colors.RESET}\n")
     
